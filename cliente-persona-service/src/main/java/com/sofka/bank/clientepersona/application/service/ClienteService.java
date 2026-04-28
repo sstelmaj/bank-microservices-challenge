@@ -2,6 +2,7 @@ package com.sofka.bank.clientepersona.application.service;
 
 import com.sofka.bank.clientepersona.application.dto.ClienteRequest;
 import com.sofka.bank.clientepersona.application.dto.ClienteResponse;
+import com.sofka.bank.clientepersona.application.mapper.ClienteMapper;
 import com.sofka.bank.clientepersona.domain.exception.ClienteNotFoundException;
 import com.sofka.bank.clientepersona.domain.exception.DuplicatedIdentificacionException;
 import com.sofka.bank.clientepersona.domain.model.Cliente;
@@ -16,57 +17,36 @@ import java.util.List;
 public class ClienteService {
 
     private final ClienteRepository clienteRepository;
+    private final ClienteMapper clienteMapper;
 
-    public ClienteService(ClienteRepository clienteRepository) {
+    public ClienteService(ClienteRepository clienteRepository, ClienteMapper clienteMapper) {
         this.clienteRepository = clienteRepository;
+        this.clienteMapper = clienteMapper;
     }
 
     public ClienteResponse crear(ClienteRequest request) {
         validarIdentificacionDuplicada(request.identificacion(), null);
-
-        Cliente cliente = new Cliente(
-                null,
-                request.nombre(),
-                request.genero(),
-                request.edad(),
-                request.identificacion(),
-                request.direccion(),
-                request.telefono(),
-                request.contrasena(),
-                request.estado()
-        );
-
-        return toResponse(clienteRepository.save(cliente));
+        Cliente cliente = clienteMapper.toEntity(request);
+        return clienteMapper.toResponse(clienteRepository.save(cliente));
     }
 
     @Transactional(readOnly = true)
     public List<ClienteResponse> listar() {
         return clienteRepository.findAll().stream()
-                .map(this::toResponse)
+                .map(clienteMapper::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ClienteResponse obtenerPorId(Long clienteId) {
-        return toResponse(buscarCliente(clienteId));
+        return clienteMapper.toResponse(buscarCliente(clienteId));
     }
 
     public ClienteResponse actualizar(Long clienteId, ClienteRequest request) {
         Cliente cliente = buscarCliente(clienteId);
         validarIdentificacionDuplicada(request.identificacion(), clienteId);
-
-        cliente.actualizar(
-                request.nombre(),
-                request.genero(),
-                request.edad(),
-                request.identificacion(),
-                request.direccion(),
-                request.telefono(),
-                request.contrasena(),
-                request.estado()
-        );
-
-        return toResponse(clienteRepository.save(cliente));
+        clienteMapper.updateEntity(cliente, request);
+        return clienteMapper.toResponse(clienteRepository.save(cliente));
     }
 
     public void desactivar(Long clienteId) {
@@ -82,7 +62,7 @@ public class ClienteService {
 
     private void validarIdentificacionDuplicada(String identificacion, Long clienteId) {
         clienteRepository.findByIdentificacion(identificacion)
-                .filter(cliente -> !cliente.getClienteId().equals(clienteId))
+                .filter(cliente -> perteneceAOtroCliente(cliente, clienteId))
                 .ifPresent(cliente -> {
                     throw new DuplicatedIdentificacionException(
                             "Ya existe un cliente con la identificacion " + identificacion
@@ -90,16 +70,7 @@ public class ClienteService {
                 });
     }
 
-    private ClienteResponse toResponse(Cliente cliente) {
-        return new ClienteResponse(
-                cliente.getClienteId(),
-                cliente.getNombre(),
-                cliente.getGenero(),
-                cliente.getEdad(),
-                cliente.getIdentificacion(),
-                cliente.getDireccion(),
-                cliente.getTelefono(),
-                cliente.isEstado()
-        );
+    private boolean perteneceAOtroCliente(Cliente cliente, Long clienteId) {
+        return clienteId == null || !cliente.getClienteId().equals(clienteId);
     }
 }
