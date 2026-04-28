@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: cuenta-movimiento-service
+  datasource:
+    url: ${CUENTAS_DB_URL:jdbc:postgresql://localhost:5434/cuentas_db}
+    username: ${CUENTAS_DB_USERNAME:cuentas_user}
+    password: ${CUENTAS_DB_PASSWORD:cuentas_pass}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+server:
+  port: ${CUENTA_MOVIMIENTO_PORT:8082}
