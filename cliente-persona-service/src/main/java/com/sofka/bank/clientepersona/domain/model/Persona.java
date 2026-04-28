@@ -43,6 +43,22 @@ public class Persona {
         this.telefono = telefono;
     }
 
+    protected void actualizarPersona(
+            String nombre,
+            String genero,
+            Integer edad,
+            String identificacion,
+            String direccion,
+            String telefono
+    ) {
+        this.nombre = nombre;
+        this.genero = genero;
+        this.edad = edad;
+        this.identificacion = identificacion;
+        this.direccion = direccion;
+        this.telefono = telefono;
+    }
+
     public String getNombre() {
         return nombre;
     }
