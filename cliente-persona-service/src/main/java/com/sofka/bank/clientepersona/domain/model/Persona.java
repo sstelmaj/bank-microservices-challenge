@@ -1,13 +1,31 @@
 package com.sofka.bank.clientepersona.domain.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.MappedSuperclass;
+
+@MappedSuperclass
 public class Persona {
 
-    private final String nombre;
-    private final String genero;
-    private final Integer edad;
-    private final String identificacion;
-    private final String direccion;
-    private final String telefono;
+    @Column(nullable = false)
+    private String nombre;
+
+    @Column
+    private String genero;
+
+    @Column
+    private Integer edad;
+
+    @Column(nullable = false, unique = true)
+    private String identificacion;
+
+    @Column
+    private String direccion;
+
+    @Column
+    private String telefono;
+
+    protected Persona() {
+    }
 
     public Persona(
             String nombre,

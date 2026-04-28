@@ -1,10 +1,26 @@
 package com.sofka.bank.clientepersona.domain.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "clientes")
 public class Cliente extends Persona {
 
-    private final Long clienteId;
-    private final String contrasena;
-    private final boolean estado;
+    @Id
+    @Column(name = "cliente_id", nullable = false)
+    private Long clienteId;
+
+    @Column(nullable = false)
+    private String contrasena;
+
+    @Column(nullable = false)
+    private boolean estado;
+
+    protected Cliente() {
+    }
 
     public Cliente(
             Long clienteId,
