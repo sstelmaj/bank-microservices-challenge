@@ -8,3 +8,9 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: false
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+      direct:
+        auto-startup: false

@@ -2,7 +2,10 @@ package com.sofka.bank.cuentamovimiento.infrastructure.web.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sofka.bank.cuentamovimiento.domain.model.ClienteSnapshot;
+import com.sofka.bank.cuentamovimiento.domain.repository.ClienteSnapshotRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,6 +40,15 @@ class CuentasCrudTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private ClienteSnapshotRepository clienteSnapshotRepository;
+
+    @BeforeEach
+    void setUpSnapshots() {
+        clienteSnapshotRepository.save(new ClienteSnapshot(1L, "Jose Lema", "1234567890", true));
+        clienteSnapshotRepository.save(new ClienteSnapshot(2L, "Marianela Montalvo", "0987654321", true));
+    }
 
     @Test
     void postCuentasShouldCreateValidCuenta() throws Exception {
@@ -146,16 +158,18 @@ class CuentasCrudTest {
     void unknownClienteInSnapshotShouldReturnNotFound() throws Exception {
         mockMvc.perform(post("/cuentas")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(validCuentaRequest()))
+                        .content(cuentaWithClienteIdRequest(999L)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Cliente no encontrado"));
     }
 
     @Test
     void inactiveClienteInSnapshotShouldReturnBadRequest() throws Exception {
+        clienteSnapshotRepository.save(new ClienteSnapshot(3L, "Cliente Inactivo", "1111111111", false));
+
         mockMvc.perform(post("/cuentas")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(validCuentaRequest()))
+                        .content(cuentaWithClienteIdRequest(3L)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Cliente inactivo"));
     }
@@ -216,5 +230,17 @@ class CuentasCrudTest {
                   "estado": true
                 }
                 """;
+    }
+
+    private String cuentaWithClienteIdRequest(Long clienteId) {
+        return """
+                {
+                  "numeroCuenta": "478762",
+                  "tipoCuenta": "AHORRO",
+                  "saldoInicial": 100,
+                  "estado": true,
+                  "clienteId": %s
+                }
+                """.formatted(clienteId);
     }
 }

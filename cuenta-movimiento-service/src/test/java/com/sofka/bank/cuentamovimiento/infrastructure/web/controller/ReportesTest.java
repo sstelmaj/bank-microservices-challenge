@@ -1,10 +1,13 @@
 package com.sofka.bank.cuentamovimiento.infrastructure.web.controller;
 
+import com.sofka.bank.cuentamovimiento.domain.model.ClienteSnapshot;
 import com.sofka.bank.cuentamovimiento.domain.model.Cuenta;
 import com.sofka.bank.cuentamovimiento.domain.model.Movimiento;
 import com.sofka.bank.cuentamovimiento.domain.model.TipoCuenta;
+import com.sofka.bank.cuentamovimiento.domain.repository.ClienteSnapshotRepository;
 import com.sofka.bank.cuentamovimiento.domain.repository.CuentaRepository;
 import com.sofka.bank.cuentamovimiento.domain.repository.MovimientoRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -40,6 +43,14 @@ class ReportesTest {
     @Autowired
     private MovimientoRepository movimientoRepository;
 
+    @Autowired
+    private ClienteSnapshotRepository clienteSnapshotRepository;
+
+    @BeforeEach
+    void setUpSnapshots() {
+        clienteSnapshotRepository.save(new ClienteSnapshot(2L, "Marianela Montalvo", "0987654321", true));
+    }
+
     @Test
     void getReportesShouldReturnClientAccountsWithBalances() throws Exception {
         createCuenta(2L, "225487", TipoCuenta.CORRIENTE, 100, 700);
@@ -51,6 +62,7 @@ class ReportesTest {
                         .param("clienteId", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.clienteId").value(2L))
+                .andExpect(jsonPath("$.cliente").value("Marianela Montalvo"))
                 .andExpect(jsonPath("$.fechaInicio").value("2022-02-01"))
                 .andExpect(jsonPath("$.fechaFin").value("2022-02-28"))
                 .andExpect(jsonPath("$.cuentas", hasSize(2)))

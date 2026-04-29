@@ -3,9 +3,13 @@ package com.sofka.bank.cuentamovimiento.application.service;
 import com.sofka.bank.cuentamovimiento.application.dto.CuentaRequest;
 import com.sofka.bank.cuentamovimiento.application.dto.CuentaResponse;
 import com.sofka.bank.cuentamovimiento.application.mapper.CuentaMapper;
+import com.sofka.bank.cuentamovimiento.domain.exception.ClienteInactivoException;
+import com.sofka.bank.cuentamovimiento.domain.exception.ClienteSnapshotNotFoundException;
+import com.sofka.bank.cuentamovimiento.domain.model.ClienteSnapshot;
 import com.sofka.bank.cuentamovimiento.domain.exception.CuentaNotFoundException;
 import com.sofka.bank.cuentamovimiento.domain.exception.DuplicatedNumeroCuentaException;
 import com.sofka.bank.cuentamovimiento.domain.model.Cuenta;
+import com.sofka.bank.cuentamovimiento.domain.repository.ClienteSnapshotRepository;
 import com.sofka.bank.cuentamovimiento.domain.repository.CuentaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,13 +22,20 @@ public class CuentaService {
 
     private final CuentaRepository cuentaRepository;
     private final CuentaMapper cuentaMapper;
+    private final ClienteSnapshotRepository clienteSnapshotRepository;
 
-    public CuentaService(CuentaRepository cuentaRepository, CuentaMapper cuentaMapper) {
+    public CuentaService(
+            CuentaRepository cuentaRepository,
+            CuentaMapper cuentaMapper,
+            ClienteSnapshotRepository clienteSnapshotRepository
+    ) {
         this.cuentaRepository = cuentaRepository;
         this.cuentaMapper = cuentaMapper;
+        this.clienteSnapshotRepository = clienteSnapshotRepository;
     }
 
     public CuentaResponse crear(CuentaRequest request) {
+        validarClienteActivo(request.clienteId());
         validarNumeroCuentaDuplicado(request.numeroCuenta(), null);
         Cuenta cuenta = cuentaMapper.toEntity(request);
         return cuentaMapper.toResponse(cuentaRepository.save(cuenta));
@@ -44,6 +55,7 @@ public class CuentaService {
 
     public CuentaResponse actualizar(Long id, CuentaRequest request) {
         Cuenta cuenta = buscarCuenta(id);
+        validarClienteActivo(request.clienteId());
         validarNumeroCuentaDuplicado(request.numeroCuenta(), id);
         cuentaMapper.updateEntity(cuenta, request);
         return cuentaMapper.toResponse(cuentaRepository.save(cuenta));
@@ -72,5 +84,14 @@ public class CuentaService {
 
     private boolean perteneceAOtraCuenta(Cuenta cuenta, Long cuentaId) {
         return cuentaId == null || !cuenta.getId().equals(cuentaId);
+    }
+
+    private void validarClienteActivo(Long clienteId) {
+        ClienteSnapshot clienteSnapshot = clienteSnapshotRepository.findByClienteId(clienteId)
+                .orElseThrow(() -> new ClienteSnapshotNotFoundException("Cliente no encontrado"));
+
+        if (!clienteSnapshot.isEstado()) {
+            throw new ClienteInactivoException("Cliente inactivo");
+        }
     }
 }

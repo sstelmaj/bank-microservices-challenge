@@ -2,6 +2,9 @@ package com.sofka.bank.cuentamovimiento.infrastructure.web.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sofka.bank.cuentamovimiento.domain.model.ClienteSnapshot;
+import com.sofka.bank.cuentamovimiento.domain.repository.ClienteSnapshotRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -37,6 +40,14 @@ class MovimientosCrudTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private ClienteSnapshotRepository clienteSnapshotRepository;
+
+    @BeforeEach
+    void setUpSnapshots() {
+        clienteSnapshotRepository.save(new ClienteSnapshot(1L, "Jose Lema", "1234567890", true));
+    }
 
     @Test
     void postMovimientosWithPositiveValueShouldRegisterDepositoAndIncreaseSaldo() throws Exception {
