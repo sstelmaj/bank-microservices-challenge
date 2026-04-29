@@ -87,6 +87,25 @@ public class Cuenta {
         return clienteId;
     }
 
+    public void actualizar(
+            String numeroCuenta,
+            TipoCuenta tipoCuenta,
+            BigDecimal saldoInicial,
+            boolean estado,
+            Long clienteId
+    ) {
+        validarSaldoInicial(saldoInicial);
+        this.numeroCuenta = numeroCuenta;
+        this.tipoCuenta = tipoCuenta;
+        this.saldoInicial = saldoInicial;
+        this.estado = estado;
+        this.clienteId = clienteId;
+    }
+
+    public void desactivar() {
+        this.estado = false;
+    }
+
     private void asignarSaldosIniciales(BigDecimal saldoInicial) {
         validarSaldoInicial(saldoInicial);
         this.saldoInicial = saldoInicial;
