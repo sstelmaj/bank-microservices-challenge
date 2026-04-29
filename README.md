@@ -133,6 +133,23 @@ Ver logs de los servicios:
 docker compose logs -f
 ```
 
+## Integracion continua
+
+El repositorio incluye un workflow de GitHub Actions en [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+
+### Que valida el pipeline
+
+- se ejecuta en `push` y `pull_request` hacia `main` y `develop`
+- usa Java 21
+- reutiliza cache de dependencias Maven
+- corre la suite principal del monorepo:
+
+```bash
+mvn -pl cliente-persona-service,cuenta-movimiento-service test
+```
+
+Esto permite verificar build y tests de ambos microservicios antes de integrar cambios.
+
 ## Validacion manual con Postman
 
 La coleccion [postman_collection.json](./postman_collection.json) permite validar manualmente los endpoints principales del reto sobre la ejecucion local.
