@@ -2,6 +2,7 @@ package com.sofka.bank.cuentamovimiento.application.service;
 
 import com.sofka.bank.cuentamovimiento.application.dto.CuentaRequest;
 import com.sofka.bank.cuentamovimiento.application.dto.CuentaResponse;
+import com.sofka.bank.cuentamovimiento.application.mapper.CuentaMapper;
 import com.sofka.bank.cuentamovimiento.domain.exception.CuentaNotFoundException;
 import com.sofka.bank.cuentamovimiento.domain.exception.DuplicatedNumeroCuentaException;
 import com.sofka.bank.cuentamovimiento.domain.model.Cuenta;
@@ -16,51 +17,36 @@ import java.util.List;
 public class CuentaService {
 
     private final CuentaRepository cuentaRepository;
+    private final CuentaMapper cuentaMapper;
 
-    public CuentaService(CuentaRepository cuentaRepository) {
+    public CuentaService(CuentaRepository cuentaRepository, CuentaMapper cuentaMapper) {
         this.cuentaRepository = cuentaRepository;
+        this.cuentaMapper = cuentaMapper;
     }
 
     public CuentaResponse crear(CuentaRequest request) {
         validarNumeroCuentaDuplicado(request.numeroCuenta(), null);
-
-        Cuenta cuenta = new Cuenta(
-                null,
-                request.numeroCuenta(),
-                request.tipoCuenta(),
-                request.saldoInicial(),
-                request.estado(),
-                request.clienteId()
-        );
-
-        return toResponse(cuentaRepository.save(cuenta));
+        Cuenta cuenta = cuentaMapper.toEntity(request);
+        return cuentaMapper.toResponse(cuentaRepository.save(cuenta));
     }
 
     @Transactional(readOnly = true)
     public List<CuentaResponse> listar() {
         return cuentaRepository.findAll().stream()
-                .map(this::toResponse)
+                .map(cuentaMapper::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public CuentaResponse obtenerPorId(Long id) {
-        return toResponse(buscarCuenta(id));
+        return cuentaMapper.toResponse(buscarCuenta(id));
     }
 
     public CuentaResponse actualizar(Long id, CuentaRequest request) {
         Cuenta cuenta = buscarCuenta(id);
         validarNumeroCuentaDuplicado(request.numeroCuenta(), id);
-
-        cuenta.actualizar(
-                request.numeroCuenta(),
-                request.tipoCuenta(),
-                request.saldoInicial(),
-                request.estado(),
-                request.clienteId()
-        );
-
-        return toResponse(cuentaRepository.save(cuenta));
+        cuentaMapper.updateEntity(cuenta, request);
+        return cuentaMapper.toResponse(cuentaRepository.save(cuenta));
     }
 
     public void desactivar(Long id) {
@@ -86,17 +72,5 @@ public class CuentaService {
 
     private boolean perteneceAOtraCuenta(Cuenta cuenta, Long cuentaId) {
         return cuentaId == null || !cuenta.getId().equals(cuentaId);
-    }
-
-    private CuentaResponse toResponse(Cuenta cuenta) {
-        return new CuentaResponse(
-                cuenta.getId(),
-                cuenta.getNumeroCuenta(),
-                cuenta.getTipoCuenta(),
-                cuenta.getSaldoInicial(),
-                cuenta.getSaldoDisponible(),
-                cuenta.isEstado(),
-                cuenta.getClienteId()
-        );
     }
 }
