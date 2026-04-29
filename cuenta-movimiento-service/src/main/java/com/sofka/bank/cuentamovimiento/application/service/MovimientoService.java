@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class MovimientoService {
 
     private static final String SALDO_NO_DISPONIBLE_MESSAGE = "Saldo no disponible";
@@ -39,17 +40,8 @@ public class MovimientoService {
     @Transactional
     public MovimientoResponse registrar(MovimientoRequest request) {
         Cuenta cuenta = buscarCuentaPorNumero(request.numeroCuenta());
-        BigDecimal saldoResultante = cuenta.calcularSaldoResultante(request.valor());
-
-        validarSaldoDisponible(saldoResultante);
-        cuenta.actualizarSaldoDisponible(saldoResultante);
-
-        Movimiento movimiento = movimientoMapper.toEntity(
-                request,
-                cuenta,
-                saldoResultante,
-                LocalDateTime.now()
-        );
+        BigDecimal saldoResultante = aplicarMovimientoEnCuenta(cuenta, request.valor());
+        Movimiento movimiento = crearMovimiento(request, cuenta, saldoResultante);
 
         cuentaRepository.save(cuenta);
         return movimientoMapper.toResponse(movimientoRepository.save(movimiento));
@@ -64,15 +56,33 @@ public class MovimientoService {
 
     @Transactional(readOnly = true)
     public MovimientoResponse obtenerPorId(Long id) {
-        return movimientoMapper.toResponse(
-                movimientoRepository.findById(id)
-                        .orElseThrow(() -> new MovimientoNotFoundException("Movimiento no encontrado"))
-        );
+        return movimientoMapper.toResponse(buscarMovimiento(id));
     }
 
     private Cuenta buscarCuentaPorNumero(String numeroCuenta) {
         return cuentaRepository.findByNumeroCuenta(numeroCuenta)
                 .orElseThrow(() -> new CuentaNotFoundException("Cuenta no encontrada"));
+    }
+
+    private Movimiento buscarMovimiento(Long id) {
+        return movimientoRepository.findById(id)
+                .orElseThrow(() -> new MovimientoNotFoundException("Movimiento no encontrado"));
+    }
+
+    private BigDecimal aplicarMovimientoEnCuenta(Cuenta cuenta, BigDecimal valor) {
+        BigDecimal saldoResultante = cuenta.calcularSaldoResultante(valor);
+        validarSaldoDisponible(saldoResultante);
+        cuenta.actualizarSaldoDisponible(saldoResultante);
+        return saldoResultante;
+    }
+
+    private Movimiento crearMovimiento(MovimientoRequest request, Cuenta cuenta, BigDecimal saldoResultante) {
+        return movimientoMapper.toEntity(
+                request,
+                cuenta,
+                saldoResultante,
+                LocalDateTime.now()
+        );
     }
 
     private void validarSaldoDisponible(BigDecimal saldoResultante) {
