@@ -230,12 +230,25 @@ La coleccion incluye requests para:
 
 - crear clientes de ejemplo
 - listar clientes
+- consultar clientes por id
+- actualizar clientes
+- desactivar clientes
+- validar identificacion duplicada
 - crear cuentas de ejemplo
 - listar cuentas
+- consultar cuentas por id
+- actualizar cuentas
+- desactivar cuentas
+- validar numero de cuenta duplicado
+- validar saldo inicial negativo
+- validar cliente inexistente o inactivo al crear cuentas
 - registrar depositos
 - registrar retiros
+- consultar movimientos por id
+- validar movimiento con valor cero
 - validar el caso `Saldo no disponible`
 - consultar movimientos
+- documentar y validar que `PUT /movimientos/{id}` y `DELETE /movimientos/{id}` hoy responden `405 Method Not Allowed`
 - consultar el reporte por rango de fechas y cliente
 
 ### Nota sobre el reporte
