@@ -15,11 +15,12 @@ public class ReporteMapper {
 
     public ReporteEstadoCuentaResponse toEstadoCuentaResponse(
             Long clienteId,
+            String cliente,
             LocalDate fechaInicio,
             LocalDate fechaFin,
             List<ReporteCuentaResponse> cuentas
     ) {
-        return new ReporteEstadoCuentaResponse(clienteId, fechaInicio, fechaFin, cuentas);
+        return new ReporteEstadoCuentaResponse(clienteId, cliente, fechaInicio, fechaFin, cuentas);
     }
 
     public ReporteCuentaResponse toCuentaResponse(Cuenta cuenta, List<ReporteMovimientoResponse> movimientos) {

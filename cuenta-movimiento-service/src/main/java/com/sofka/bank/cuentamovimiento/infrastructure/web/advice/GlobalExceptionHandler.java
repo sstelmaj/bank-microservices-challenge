@@ -1,6 +1,8 @@
 package com.sofka.bank.cuentamovimiento.infrastructure.web.advice;
 
 import com.sofka.bank.cuentamovimiento.domain.exception.CuentaNotFoundException;
+import com.sofka.bank.cuentamovimiento.domain.exception.ClienteInactivoException;
+import com.sofka.bank.cuentamovimiento.domain.exception.ClienteSnapshotNotFoundException;
 import com.sofka.bank.cuentamovimiento.domain.exception.DuplicatedNumeroCuentaException;
 import com.sofka.bank.cuentamovimiento.domain.exception.MovimientoNotFoundException;
 import com.sofka.bank.cuentamovimiento.domain.exception.SaldoNoDisponibleException;
@@ -23,6 +25,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MovimientoNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleMovimientoNotFound(MovimientoNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(exception.getMessage()));
+    }
+
+    @ExceptionHandler(ClienteSnapshotNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleClienteSnapshotNotFound(ClienteSnapshotNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(exception.getMessage()));
     }
@@ -52,6 +60,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SaldoNoDisponibleException.class)
     public ResponseEntity<ErrorResponse> handleSaldoNoDisponible(SaldoNoDisponibleException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(exception.getMessage()));
+    }
+
+    @ExceptionHandler(ClienteInactivoException.class)
+    public ResponseEntity<ErrorResponse> handleClienteInactivo(ClienteInactivoException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(exception.getMessage()));
     }

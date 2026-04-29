@@ -5,6 +5,7 @@ import com.sofka.bank.cuentamovimiento.application.dto.ReporteEstadoCuentaRespon
 import com.sofka.bank.cuentamovimiento.application.dto.ReporteMovimientoResponse;
 import com.sofka.bank.cuentamovimiento.application.mapper.ReporteMapper;
 import com.sofka.bank.cuentamovimiento.domain.model.Cuenta;
+import com.sofka.bank.cuentamovimiento.domain.repository.ClienteSnapshotRepository;
 import com.sofka.bank.cuentamovimiento.domain.repository.CuentaRepository;
 import com.sofka.bank.cuentamovimiento.domain.repository.MovimientoRepository;
 import org.springframework.stereotype.Service;
@@ -22,15 +23,18 @@ public class ReporteService {
 
     private static final String RANGO_FECHAS_INVALIDO_MESSAGE = "Rango de fechas invalido";
 
+    private final ClienteSnapshotRepository clienteSnapshotRepository;
     private final CuentaRepository cuentaRepository;
     private final MovimientoRepository movimientoRepository;
     private final ReporteMapper reporteMapper;
 
     public ReporteService(
+            ClienteSnapshotRepository clienteSnapshotRepository,
             CuentaRepository cuentaRepository,
             MovimientoRepository movimientoRepository,
             ReporteMapper reporteMapper
     ) {
+        this.clienteSnapshotRepository = clienteSnapshotRepository;
         this.cuentaRepository = cuentaRepository;
         this.movimientoRepository = movimientoRepository;
         this.reporteMapper = reporteMapper;
@@ -44,6 +48,7 @@ public class ReporteService {
 
         return reporteMapper.toEstadoCuentaResponse(
                 clienteId,
+                obtenerNombreCliente(clienteId),
                 rangoFechas.fechaInicio(),
                 rangoFechas.fechaFin(),
                 cuentas
@@ -87,6 +92,12 @@ public class ReporteService {
         } catch (DateTimeParseException exception) {
             throw new IllegalArgumentException(RANGO_FECHAS_INVALIDO_MESSAGE);
         }
+    }
+
+    private String obtenerNombreCliente(Long clienteId) {
+        return clienteSnapshotRepository.findByClienteId(clienteId)
+                .map(clienteSnapshot -> clienteSnapshot.getNombre())
+                .orElse(null);
     }
 
     private record RangoFechas(

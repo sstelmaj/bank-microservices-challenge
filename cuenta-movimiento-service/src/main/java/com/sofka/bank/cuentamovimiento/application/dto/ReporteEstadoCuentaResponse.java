@@ -5,6 +5,7 @@ import java.util.List;
 
 public record ReporteEstadoCuentaResponse(
         Long clienteId,
+        String cliente,
         LocalDate fechaInicio,
         LocalDate fechaFin,
         List<ReporteCuentaResponse> cuentas
