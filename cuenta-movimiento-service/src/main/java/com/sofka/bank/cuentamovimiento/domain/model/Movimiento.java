@@ -87,14 +87,22 @@ public class Movimiento {
     }
 
     private static void validarValor(BigDecimal valor) {
-        if (valor.compareTo(BigDecimal.ZERO) == 0) {
+        if (esValorCero(valor)) {
             throw new IllegalArgumentException(VALOR_CERO_NO_VALIDO_MESSAGE);
         }
     }
 
     private static TipoMovimiento clasificarTipo(BigDecimal valor) {
-        return valor.compareTo(BigDecimal.ZERO) > 0
+        return esDeposito(valor)
                 ? TipoMovimiento.DEPOSITO
                 : TipoMovimiento.RETIRO;
+    }
+
+    private static boolean esValorCero(BigDecimal valor) {
+        return valor.compareTo(BigDecimal.ZERO) == 0;
+    }
+
+    private static boolean esDeposito(BigDecimal valor) {
+        return valor.compareTo(BigDecimal.ZERO) > 0;
     }
 }
