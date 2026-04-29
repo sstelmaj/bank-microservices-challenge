@@ -1,13 +1,43 @@
 # bank-microservices-challenge
 
-Reto backend para un sistema bancario simple implementado con Java y Spring Boot, siguiendo una arquitectura de dos microservicios para perfil Semi Senior.
+Reto tecnico backend para un sistema bancario simple, implementado con Java y Spring Boot bajo una arquitectura de 2 microservicios, orientada a un perfil Semi Senior.
 
-## Microservicios
+## Descripcion del reto
 
-- `cliente-persona-service`: gestiona Persona y Cliente.
-- `cuenta-movimiento-service`: gestiona Cuenta, Movimiento y reportes.
+La solucion cubre el flujo principal solicitado en el enunciado:
 
-## Stack base
+- gestion de clientes
+- gestion de cuentas
+- registro de movimientos
+- validacion de saldo no disponible
+- reporte de estado de cuenta por cliente y rango de fechas
+- comunicacion asincronica entre microservicios
+- ejecucion local con Docker Compose
+- validacion automatizada con GitHub Actions
+
+## Arquitectura
+
+La aplicacion esta separada en dos microservicios:
+
+### cliente-persona-service
+
+Responsable de:
+
+- gestionar Persona y Cliente
+- exponer el CRUD de `/clientes`
+- publicar eventos cuando un cliente se crea, actualiza o desactiva
+
+### cuenta-movimiento-service
+
+Responsable de:
+
+- gestionar Cuenta y Movimiento
+- exponer `/cuentas`, `/movimientos` y `/reportes`
+- actualizar saldos disponibles a partir de movimientos
+- validar saldo insuficiente
+- consumir eventos de cliente y mantener un `ClienteSnapshot` local
+
+## Stack tecnico
 
 - Java 21
 - Spring Boot 3.5.x
@@ -18,19 +48,74 @@ Reto backend para un sistema bancario simple implementado con Java y Spring Boot
 - PostgreSQL
 - RabbitMQ
 - Spring Boot Actuator
-- Docker Compose
+- JUnit 5
+- Mockito
+- Docker y Docker Compose
+- GitHub Actions
 
-## Estructura
+## Estructura del repositorio
 
 ```text
 bank-microservices-challenge/
   cliente-persona-service/
   cuenta-movimiento-service/
+  .github/workflows/ci.yml
   docker-compose.yml
+  postman_collection.json
   pom.xml
+  README.md
 ```
 
-## Ejecucion local con Docker
+## Endpoints principales
+
+La API respeta el contrato principal del reto:
+
+- `POST /clientes`
+- `GET /clientes`
+- `GET /clientes/{clienteId}`
+- `PUT /clientes/{clienteId}`
+- `DELETE /clientes/{clienteId}`
+
+- `POST /cuentas`
+- `GET /cuentas`
+- `GET /cuentas/{id}`
+- `PUT /cuentas/{id}`
+- `DELETE /cuentas/{id}`
+
+- `POST /movimientos`
+- `GET /movimientos`
+- `GET /movimientos/{id}`
+
+- `GET /reportes?fecha=2022-02-01,2022-02-28&clienteId=2`
+
+## Reglas funcionales clave
+
+- `Cliente` hereda de `Persona`
+- `saldoDisponible` inicia con el mismo valor de `saldoInicial`
+- movimiento con valor positivo = deposito
+- movimiento con valor negativo = retiro
+- movimiento con valor `0` no es valido
+- si un retiro excede el saldo disponible, la respuesta funcional es `Saldo no disponible`
+- los movimientos rechazados no deben alterar saldo ni registrarse
+
+## Comunicacion asincronica con RabbitMQ
+
+La solucion usa RabbitMQ para desacoplar ambos microservicios.
+
+### Eventos publicados por `cliente-persona-service`
+
+- `ClienteCreado`
+- `ClienteActualizado`
+- `ClienteDesactivado`
+
+### Uso en `cuenta-movimiento-service`
+
+- mantener una copia local minima `ClienteSnapshot`
+- validar existencia del cliente al crear cuentas
+- validar estado activo del cliente
+- enriquecer reportes con la informacion disponible del snapshot cuando aplica
+
+## Ejecucion local con Docker Compose
 
 ### Prerrequisitos
 
@@ -64,17 +149,6 @@ Credenciales por defecto de RabbitMQ:
 - usuario: `bank_user`
 - contrasena: `bank_pass`
 
-### Verificacion rapida
-
-Health checks:
-
-```bash
-curl http://localhost:8081/actuator/health
-curl http://localhost:8082/actuator/health
-```
-
-Si todo arranco bien, ambos endpoints deben responder con estado `UP`.
-
 ### Variables de entorno principales
 
 `cliente-persona-service`
@@ -101,6 +175,15 @@ Si todo arranco bien, ambos endpoints deben responder con estado `UP`.
 - `RABBITMQ_USERNAME`
 - `RABBITMQ_PASSWORD`
 
+### Verificacion rapida
+
+```bash
+curl http://localhost:8081/actuator/health
+curl http://localhost:8082/actuator/health
+```
+
+Si todo arranco bien, ambos endpoints deben responder con estado `UP`.
+
 ### Detener la solucion
 
 ```bash
@@ -113,56 +196,28 @@ Para eliminar tambien los volumenes:
 docker compose down -v
 ```
 
-## Comandos utiles
+## Ejecucion de tests
 
-Ejecutar pruebas de ambos microservicios:
+Para correr la suite principal de ambos microservicios:
 
 ```bash
 mvn -pl cliente-persona-service,cuenta-movimiento-service test
 ```
 
-Validar la configuracion final de Docker Compose:
+Tambien es util validar la configuracion final de contenedores:
 
 ```bash
 docker compose config
 ```
 
-Ver logs de los servicios:
-
-```bash
-docker compose logs -f
-```
-
-## Integracion continua
-
-El repositorio incluye un workflow de GitHub Actions en [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
-
-### Que valida el pipeline
-
-- se ejecuta en `push` y `pull_request` hacia `main` y `develop`
-- usa Java 21
-- reutiliza cache de dependencias Maven
-- corre la suite principal del monorepo:
-
-```bash
-mvn -pl cliente-persona-service,cuenta-movimiento-service test
-```
-
-Esto permite verificar build y tests de ambos microservicios antes de integrar cambios.
-
-## Validacion manual con Postman
+## Coleccion Postman
 
 La coleccion [postman_collection.json](./postman_collection.json) permite validar manualmente los endpoints principales del reto sobre la ejecucion local.
 
-### Importar la coleccion
+### Variables usadas
 
-1. Abrir Postman.
-2. Importar el archivo `postman_collection.json`.
-3. Crear un environment opcional con estas variables:
-   - `clientePersonaBaseUrl = http://localhost:8081`
-   - `cuentaMovimientoBaseUrl = http://localhost:8082`
-
-La coleccion ya define esos valores como variables internas, asi que puede ejecutarse directamente si se usa la configuracion local estandar.
+- `clientePersonaBaseUrl = http://localhost:8081`
+- `cuentaMovimientoBaseUrl = http://localhost:8082`
 
 ### Orden recomendado de ejecucion
 
@@ -171,33 +226,67 @@ La coleccion ya define esos valores como variables internas, asi que puede ejecu
 3. `Movimientos`
 4. `Reportes`
 
-Los requests de creacion guardan ids en variables de coleccion para reutilizarlos en los pasos siguientes.
+La coleccion incluye requests para:
 
-### Cobertura incluida
-
-- crear clientes de ejemplo del enunciado
+- crear clientes de ejemplo
 - listar clientes
-- crear cuentas de ejemplo del enunciado
+- crear cuentas de ejemplo
 - listar cuentas
 - registrar depositos
 - registrar retiros
 - validar el caso `Saldo no disponible`
 - consultar movimientos
-- consultar el reporte con el formato `/reportes?fecha=2022-02-01,2022-02-28&clienteId=...`
+- consultar el reporte por rango de fechas y cliente
 
 ### Nota sobre el reporte
 
-La coleccion conserva el rango de fechas del PDF (`2022-02-01` a `2022-02-28`). Si se ejecuta sobre una base limpia y los movimientos se crean hoy, el reporte puede devolver las cuentas con la lista de movimientos vacia, porque los movimientos quedan registrados con la fecha actual del sistema.
+La coleccion conserva el rango de fechas del PDF (`2022-02-01` a `2022-02-28`). Si se ejecuta sobre una base limpia y los movimientos se crean hoy, el reporte puede devolver cuentas con lista de movimientos vacia porque los movimientos se registran con la fecha actual del sistema.
+
+## CI con GitHub Actions
+
+El repositorio incluye el workflow [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+
+El pipeline:
+
+- se ejecuta en `push` y `pull_request` hacia `main` y `develop`
+- usa Java 21
+- cachea dependencias Maven
+- ejecuta:
+
+```bash
+mvn -pl cliente-persona-service,cuenta-movimiento-service test
+```
+
+Esto permite validar build y pruebas automaticamente antes de integrar cambios.
+
+## BaseDatos.sql
+
+Actualmente no existe un archivo `BaseDatos.sql` dentro de este repositorio.
+
+Si se incorpora como parte del paquete final de entrega, la ubicacion esperada recomendada es:
+
+```text
+/BaseDatos.sql
+```
 
 ## Flujo de trabajo
 
-El desarrollo debe seguir `AGENTS.md`:
+El desarrollo sigue `AGENTS.md`:
 
-- `main` como rama principal.
-- `develop` como rama de integracion.
-- ramas `feat/<descripcion-corta>` para cada funcionalidad.
-- commits pequenos, trazables y con TDD para funcionalidades de negocio.
+- `main` como rama principal
+- `develop` como rama de integracion
+- ramas por feature o documentacion
+- commits pequenos y trazables
+- TDD para funcionalidades de negocio
 
 ## Estado actual
 
-La solucion cuenta con dos microservicios Spring Boot, persistencia separada en PostgreSQL para cada contexto y RabbitMQ como broker de mensajeria para la comunicacion asincronica entre servicios.
+La solucion cuenta con:
+
+- dos microservicios Spring Boot
+- persistencia separada en PostgreSQL para cada contexto
+- RabbitMQ como broker de mensajeria
+- pruebas automatizadas ejecutables con Maven
+- ejecucion local con Docker Compose
+- coleccion Postman para validacion manual
+- pipeline CI con GitHub Actions
