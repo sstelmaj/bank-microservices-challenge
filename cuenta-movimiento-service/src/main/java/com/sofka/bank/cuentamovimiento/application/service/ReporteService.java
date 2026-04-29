@@ -3,8 +3,8 @@ package com.sofka.bank.cuentamovimiento.application.service;
 import com.sofka.bank.cuentamovimiento.application.dto.ReporteCuentaResponse;
 import com.sofka.bank.cuentamovimiento.application.dto.ReporteEstadoCuentaResponse;
 import com.sofka.bank.cuentamovimiento.application.dto.ReporteMovimientoResponse;
+import com.sofka.bank.cuentamovimiento.application.mapper.ReporteMapper;
 import com.sofka.bank.cuentamovimiento.domain.model.Cuenta;
-import com.sofka.bank.cuentamovimiento.domain.model.Movimiento;
 import com.sofka.bank.cuentamovimiento.domain.repository.CuentaRepository;
 import com.sofka.bank.cuentamovimiento.domain.repository.MovimientoRepository;
 import org.springframework.stereotype.Service;
@@ -24,10 +24,16 @@ public class ReporteService {
 
     private final CuentaRepository cuentaRepository;
     private final MovimientoRepository movimientoRepository;
+    private final ReporteMapper reporteMapper;
 
-    public ReporteService(CuentaRepository cuentaRepository, MovimientoRepository movimientoRepository) {
+    public ReporteService(
+            CuentaRepository cuentaRepository,
+            MovimientoRepository movimientoRepository,
+            ReporteMapper reporteMapper
+    ) {
         this.cuentaRepository = cuentaRepository;
         this.movimientoRepository = movimientoRepository;
+        this.reporteMapper = reporteMapper;
     }
 
     public ReporteEstadoCuentaResponse generarEstadoCuenta(Long clienteId, String fecha) {
@@ -36,7 +42,7 @@ public class ReporteService {
                 .map(cuenta -> toCuentaResponse(cuenta, rangoFechas))
                 .toList();
 
-        return new ReporteEstadoCuentaResponse(
+        return reporteMapper.toEstadoCuentaResponse(
                 clienteId,
                 rangoFechas.fechaInicio(),
                 rangoFechas.fechaFin(),
@@ -52,25 +58,10 @@ public class ReporteService {
                         rangoFechas.fechaHoraFin()
                 )
                 .stream()
-                .map(this::toMovimientoResponse)
+                .map(reporteMapper::toMovimientoResponse)
                 .toList();
 
-        return new ReporteCuentaResponse(
-                cuenta.getNumeroCuenta(),
-                cuenta.getTipoCuenta().name(),
-                cuenta.getSaldoInicial(),
-                cuenta.isEstado(),
-                cuenta.getSaldoDisponible(),
-                movimientos
-        );
-    }
-
-    private ReporteMovimientoResponse toMovimientoResponse(Movimiento movimiento) {
-        return new ReporteMovimientoResponse(
-                movimiento.getFecha().toLocalDate(),
-                movimiento.getValor(),
-                movimiento.getSaldo()
-        );
+        return reporteMapper.toCuentaResponse(cuenta, movimientos);
     }
 
     private RangoFechas parsearRango(String fecha) {
