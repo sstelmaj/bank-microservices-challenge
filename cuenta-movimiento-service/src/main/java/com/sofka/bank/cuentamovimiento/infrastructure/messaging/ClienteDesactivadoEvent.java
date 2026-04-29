@@ -5,5 +5,5 @@ public record ClienteDesactivadoEvent(
         String nombre,
         String identificacion,
         boolean estado
-) {
+) implements ClienteEventPayload {
 }

@@ -17,39 +17,37 @@ public class ClienteSnapshotListener {
 
     @RabbitListener(queues = ClienteMessagingConstants.CLIENTE_CREADO_QUEUE)
     public void handleClienteCreado(ClienteCreadoEvent event) {
-        clienteSnapshotRepository.save(new ClienteSnapshot(
-                event.clienteId(),
-                event.nombre(),
-                event.identificacion(),
-                event.estado()
-        ));
+        guardarSnapshot(event);
     }
 
     @RabbitListener(queues = ClienteMessagingConstants.CLIENTE_ACTUALIZADO_QUEUE)
     public void handleClienteActualizado(ClienteActualizadoEvent event) {
+        actualizarSnapshot(event);
+    }
+
+    @RabbitListener(queues = ClienteMessagingConstants.CLIENTE_DESACTIVADO_QUEUE)
+    public void handleClienteDesactivado(ClienteDesactivadoEvent event) {
+        actualizarSnapshot(event);
+    }
+
+    private void guardarSnapshot(ClienteEventPayload event) {
+        clienteSnapshotRepository.save(crearSnapshot(event));
+    }
+
+    private void actualizarSnapshot(ClienteEventPayload event) {
         ClienteSnapshot snapshot = clienteSnapshotRepository.findByClienteId(event.clienteId())
-                .orElse(new ClienteSnapshot(
-                        event.clienteId(),
-                        event.nombre(),
-                        event.identificacion(),
-                        event.estado()
-                ));
+                .orElseGet(() -> crearSnapshot(event));
 
         snapshot.actualizar(event.nombre(), event.identificacion(), event.estado());
         clienteSnapshotRepository.save(snapshot);
     }
 
-    @RabbitListener(queues = ClienteMessagingConstants.CLIENTE_DESACTIVADO_QUEUE)
-    public void handleClienteDesactivado(ClienteDesactivadoEvent event) {
-        ClienteSnapshot snapshot = clienteSnapshotRepository.findByClienteId(event.clienteId())
-                .orElse(new ClienteSnapshot(
-                        event.clienteId(),
-                        event.nombre(),
-                        event.identificacion(),
-                        event.estado()
-                ));
-
-        snapshot.actualizar(event.nombre(), event.identificacion(), event.estado());
-        clienteSnapshotRepository.save(snapshot);
+    private ClienteSnapshot crearSnapshot(ClienteEventPayload event) {
+        return new ClienteSnapshot(
+                event.clienteId(),
+                event.nombre(),
+                event.identificacion(),
+                event.estado()
+        );
     }
 }

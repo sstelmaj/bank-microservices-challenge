@@ -5,5 +5,5 @@ public record ClienteCreadoEvent(
         String nombre,
         String identificacion,
         boolean estado
-) {
+) implements ClienteEventPayload {
 }
