@@ -1,11 +1,11 @@
-﻿# bank-microservices-challenge
+# bank-microservices-challenge
 
 Reto backend para un sistema bancario simple implementado con Java y Spring Boot, siguiendo una arquitectura de dos microservicios para perfil Semi Senior.
 
 ## Microservicios
 
-- `cliente-persona-service`: base del servicio que gestionara Persona y Cliente.
-- `cuenta-movimiento-service`: base del servicio que gestionara Cuenta, Movimiento y reportes.
+- `cliente-persona-service`: gestiona Persona y Cliente.
+- `cuenta-movimiento-service`: gestiona Cuenta, Movimiento y reportes.
 
 ## Stack base
 
@@ -17,10 +17,10 @@ Reto backend para un sistema bancario simple implementado con Java y Spring Boot
 - Bean Validation
 - PostgreSQL
 - RabbitMQ
-- Spring Boot Test
+- Spring Boot Actuator
 - Docker Compose
 
-## Estructura inicial
+## Estructura
 
 ```text
 bank-microservices-challenge/
@@ -30,25 +30,164 @@ bank-microservices-challenge/
   pom.xml
 ```
 
-## Comandos utiles
+## Ejecucion local con Docker
 
-Compilar y ejecutar pruebas de ambos microservicios:
+### Prerrequisitos
+
+- Docker Desktop o Docker Engine con Docker Compose
+- Java 21 y Maven solo si quieres ejecutar pruebas fuera de los contenedores
+
+### Levantar toda la solucion
+
+Desde la raiz del repositorio:
 
 ```bash
-mvn test
+docker compose up --build
 ```
 
-Levantar servicios base de infraestructura:
+Esto levanta:
+
+- `postgres-clientes`
+- `postgres-cuentas`
+- `rabbitmq`
+- `cliente-persona-service`
+- `cuenta-movimiento-service`
+
+### Servicios expuestos
+
+- `cliente-persona-service`: `http://localhost:8081`
+- `cuenta-movimiento-service`: `http://localhost:8082`
+- RabbitMQ Management: `http://localhost:15672`
+
+Credenciales por defecto de RabbitMQ:
+
+- usuario: `bank_user`
+- contrasena: `bank_pass`
+
+### Verificacion rapida
+
+Health checks:
 
 ```bash
-docker compose up -d
+curl http://localhost:8081/actuator/health
+curl http://localhost:8082/actuator/health
 ```
 
-Detener servicios base:
+Si todo arranco bien, ambos endpoints deben responder con estado `UP`.
+
+### Variables de entorno principales
+
+`cliente-persona-service`
+
+- `CLIENTE_PERSONA_PORT`
+- `CLIENTES_DB_URL`
+- `CLIENTES_DB_USERNAME`
+- `CLIENTES_DB_PASSWORD`
+- `SPRING_JPA_HIBERNATE_DDL_AUTO`
+- `RABBITMQ_HOST`
+- `RABBITMQ_PORT`
+- `RABBITMQ_USERNAME`
+- `RABBITMQ_PASSWORD`
+
+`cuenta-movimiento-service`
+
+- `CUENTA_MOVIMIENTO_PORT`
+- `CUENTAS_DB_URL`
+- `CUENTAS_DB_USERNAME`
+- `CUENTAS_DB_PASSWORD`
+- `SPRING_JPA_HIBERNATE_DDL_AUTO`
+- `RABBITMQ_HOST`
+- `RABBITMQ_PORT`
+- `RABBITMQ_USERNAME`
+- `RABBITMQ_PASSWORD`
+
+### Detener la solucion
 
 ```bash
 docker compose down
 ```
+
+Para eliminar tambien los volumenes:
+
+```bash
+docker compose down -v
+```
+
+## Comandos utiles
+
+Ejecutar pruebas de ambos microservicios:
+
+```bash
+mvn -pl cliente-persona-service,cuenta-movimiento-service test
+```
+
+Validar la configuracion final de Docker Compose:
+
+```bash
+docker compose config
+```
+
+Ver logs de los servicios:
+
+```bash
+docker compose logs -f
+```
+
+## Integracion continua
+
+El repositorio incluye un workflow de GitHub Actions en [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+
+### Que valida el pipeline
+
+- se ejecuta en `push` y `pull_request` hacia `main` y `develop`
+- usa Java 21
+- reutiliza cache de dependencias Maven
+- corre la suite principal del monorepo:
+
+```bash
+mvn -pl cliente-persona-service,cuenta-movimiento-service test
+```
+
+Esto permite verificar build y tests de ambos microservicios antes de integrar cambios.
+
+## Validacion manual con Postman
+
+La coleccion [postman_collection.json](./postman_collection.json) permite validar manualmente los endpoints principales del reto sobre la ejecucion local.
+
+### Importar la coleccion
+
+1. Abrir Postman.
+2. Importar el archivo `postman_collection.json`.
+3. Crear un environment opcional con estas variables:
+   - `clientePersonaBaseUrl = http://localhost:8081`
+   - `cuentaMovimientoBaseUrl = http://localhost:8082`
+
+La coleccion ya define esos valores como variables internas, asi que puede ejecutarse directamente si se usa la configuracion local estandar.
+
+### Orden recomendado de ejecucion
+
+1. `Clientes`
+2. `Cuentas`
+3. `Movimientos`
+4. `Reportes`
+
+Los requests de creacion guardan ids en variables de coleccion para reutilizarlos en los pasos siguientes.
+
+### Cobertura incluida
+
+- crear clientes de ejemplo del enunciado
+- listar clientes
+- crear cuentas de ejemplo del enunciado
+- listar cuentas
+- registrar depositos
+- registrar retiros
+- validar el caso `Saldo no disponible`
+- consultar movimientos
+- consultar el reporte con el formato `/reportes?fecha=2022-02-01,2022-02-28&clienteId=...`
+
+### Nota sobre el reporte
+
+La coleccion conserva el rango de fechas del PDF (`2022-02-01` a `2022-02-28`). Si se ejecuta sobre una base limpia y los movimientos se crean hoy, el reporte puede devolver las cuentas con la lista de movimientos vacia, porque los movimientos quedan registrados con la fecha actual del sistema.
 
 ## Flujo de trabajo
 
@@ -61,4 +200,4 @@ El desarrollo debe seguir `AGENTS.md`:
 
 ## Estado actual
 
-La rama `feat/project-setup` solo prepara estructura base, dependencias, paquetes iniciales, pruebas de arranque y servicios Docker de infraestructura. No incluye entidades, controladores, servicios ni reglas de negocio.
+La solucion cuenta con dos microservicios Spring Boot, persistencia separada en PostgreSQL para cada contexto y RabbitMQ como broker de mensajeria para la comunicacion asincronica entre servicios.
