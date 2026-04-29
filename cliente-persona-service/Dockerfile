@@ -6,7 +6,7 @@ COPY pom.xml ./
 COPY cliente-persona-service/pom.xml cliente-persona-service/pom.xml
 COPY cliente-persona-service/src cliente-persona-service/src
 
-RUN mvn -pl cliente-persona-service -am clean package -DskipTests
+RUN mvn -f cliente-persona-service/pom.xml clean package -DskipTests
 
 FROM eclipse-temurin:21-jre-jammy
 
@@ -21,4 +21,3 @@ COPY --from=builder /workspace/cliente-persona-service/target/cliente-persona-se
 EXPOSE 8081
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
-

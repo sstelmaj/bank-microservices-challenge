@@ -6,7 +6,7 @@ COPY pom.xml ./
 COPY cuenta-movimiento-service/pom.xml cuenta-movimiento-service/pom.xml
 COPY cuenta-movimiento-service/src cuenta-movimiento-service/src
 
-RUN mvn -pl cuenta-movimiento-service -am clean package -DskipTests
+RUN mvn -f cuenta-movimiento-service/pom.xml clean package -DskipTests
 
 FROM eclipse-temurin:21-jre-jammy
 
