@@ -1,7 +1,6 @@
 services:
-  clientes-db:
+  postgres-clientes:
     image: postgres:16-alpine
-    container_name: clientes-db
     environment:
       POSTGRES_DB: clientes_db
       POSTGRES_USER: clientes_user
@@ -16,9 +15,8 @@ services:
       timeout: 5s
       retries: 5
 
-  cuentas-db:
+  postgres-cuentas:
     image: postgres:16-alpine
-    container_name: cuentas-db
     environment:
       POSTGRES_DB: cuentas_db
       POSTGRES_USER: cuentas_user
@@ -35,7 +33,6 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
-    container_name: bank-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -48,7 +45,63 @@ services:
       test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+
+  cliente-persona-service:
+    build:
+      context: .
+      dockerfile: cliente-persona-service/Dockerfile
+    depends_on:
+      postgres-clientes:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      CLIENTE_PERSONA_PORT: 8081
+      CLIENTES_DB_URL: jdbc:postgresql://postgres-clientes:5432/clientes_db
+      CLIENTES_DB_USERNAME: clientes_user
+      CLIENTES_DB_PASSWORD: clientes_pass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: bank_user
+      RABBITMQ_PASSWORD: bank_pass
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8081/actuator/health > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+
+  cuenta-movimiento-service:
+    build:
+      context: .
+      dockerfile: cuenta-movimiento-service/Dockerfile
+    depends_on:
+      postgres-cuentas:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      CUENTA_MOVIMIENTO_PORT: 8082
+      CUENTAS_DB_URL: jdbc:postgresql://postgres-cuentas:5432/cuentas_db
+      CUENTAS_DB_USERNAME: cuentas_user
+      CUENTAS_DB_PASSWORD: cuentas_pass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: bank_user
+      RABBITMQ_PASSWORD: bank_pass
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8082/actuator/health > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
 
 volumes:
   clientes-db-data:
