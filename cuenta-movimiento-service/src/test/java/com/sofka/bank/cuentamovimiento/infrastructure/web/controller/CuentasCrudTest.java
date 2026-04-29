@@ -142,6 +142,24 @@ class CuentasCrudTest {
                 .andExpect(jsonPath("$.message", containsString("clienteId")));
     }
 
+    @Test
+    void unknownClienteInSnapshotShouldReturnNotFound() throws Exception {
+        mockMvc.perform(post("/cuentas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validCuentaRequest()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Cliente no encontrado"));
+    }
+
+    @Test
+    void inactiveClienteInSnapshotShouldReturnBadRequest() throws Exception {
+        mockMvc.perform(post("/cuentas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validCuentaRequest()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Cliente inactivo"));
+    }
+
     private Long createCuenta(String requestBody) throws Exception {
         MvcResult result = mockMvc.perform(post("/cuentas")
                         .contentType(MediaType.APPLICATION_JSON)
