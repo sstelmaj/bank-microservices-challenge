@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: cliente-persona-service
+  datasource:
+    url: ${CLIENTES_DB_URL:jdbc:postgresql://localhost:5433/clientes_db}
+    username: ${CLIENTES_DB_USERNAME:clientes_user}
+    password: ${CLIENTES_DB_PASSWORD:clientes_pass}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+server:
+  port: ${CLIENTE_PERSONA_PORT:8081}

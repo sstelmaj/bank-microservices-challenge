@@ -1,0 +1,56 @@
+services:
+  clientes-db:
+    image: postgres:16-alpine
+    container_name: clientes-db
+    environment:
+      POSTGRES_DB: clientes_db
+      POSTGRES_USER: clientes_user
+      POSTGRES_PASSWORD: clientes_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - clientes-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clientes_user -d clientes_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cuentas-db:
+    image: postgres:16-alpine
+    container_name: cuentas-db
+    environment:
+      POSTGRES_DB: cuentas_db
+      POSTGRES_USER: cuentas_user
+      POSTGRES_PASSWORD: cuentas_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - cuentas-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cuentas_user -d cuentas_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: bank-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: bank_user
+      RABBITMQ_DEFAULT_PASS: bank_pass
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  clientes-db-data:
+  cuentas-db-data:
+  rabbitmq-data:
