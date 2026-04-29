@@ -15,6 +15,8 @@ import java.math.BigDecimal;
 @Table(name = "cuentas")
 public class Cuenta {
 
+    private static final String SALDO_INICIAL_NEGATIVO_MESSAGE = "El saldo inicial no puede ser negativo";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -49,12 +51,10 @@ public class Cuenta {
             boolean estado,
             Long clienteId
     ) {
-        validarSaldoInicial(saldoInicial);
         this.id = id;
         this.numeroCuenta = numeroCuenta;
         this.tipoCuenta = tipoCuenta;
-        this.saldoInicial = saldoInicial;
-        this.saldoDisponible = saldoInicial;
+        asignarSaldosIniciales(saldoInicial);
         this.estado = estado;
         this.clienteId = clienteId;
     }
@@ -87,9 +87,15 @@ public class Cuenta {
         return clienteId;
     }
 
+    private void asignarSaldosIniciales(BigDecimal saldoInicial) {
+        validarSaldoInicial(saldoInicial);
+        this.saldoInicial = saldoInicial;
+        this.saldoDisponible = saldoInicial;
+    }
+
     private void validarSaldoInicial(BigDecimal saldoInicial) {
         if (saldoInicial.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("El saldo inicial no puede ser negativo");
+            throw new IllegalArgumentException(SALDO_INICIAL_NEGATIVO_MESSAGE);
         }
     }
 }
