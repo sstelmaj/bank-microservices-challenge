@@ -133,6 +133,45 @@ Ver logs de los servicios:
 docker compose logs -f
 ```
 
+## Validacion manual con Postman
+
+La coleccion [postman_collection.json](./postman_collection.json) permite validar manualmente los endpoints principales del reto sobre la ejecucion local.
+
+### Importar la coleccion
+
+1. Abrir Postman.
+2. Importar el archivo `postman_collection.json`.
+3. Crear un environment opcional con estas variables:
+   - `clientePersonaBaseUrl = http://localhost:8081`
+   - `cuentaMovimientoBaseUrl = http://localhost:8082`
+
+La coleccion ya define esos valores como variables internas, asi que puede ejecutarse directamente si se usa la configuracion local estandar.
+
+### Orden recomendado de ejecucion
+
+1. `Clientes`
+2. `Cuentas`
+3. `Movimientos`
+4. `Reportes`
+
+Los requests de creacion guardan ids en variables de coleccion para reutilizarlos en los pasos siguientes.
+
+### Cobertura incluida
+
+- crear clientes de ejemplo del enunciado
+- listar clientes
+- crear cuentas de ejemplo del enunciado
+- listar cuentas
+- registrar depositos
+- registrar retiros
+- validar el caso `Saldo no disponible`
+- consultar movimientos
+- consultar el reporte con el formato `/reportes?fecha=2022-02-01,2022-02-28&clienteId=...`
+
+### Nota sobre el reporte
+
+La coleccion conserva el rango de fechas del PDF (`2022-02-01` a `2022-02-28`). Si se ejecuta sobre una base limpia y los movimientos se crean hoy, el reporte puede devolver las cuentas con la lista de movimientos vacia, porque los movimientos quedan registrados con la fecha actual del sistema.
+
 ## Flujo de trabajo
 
 El desarrollo debe seguir `AGENTS.md`:
