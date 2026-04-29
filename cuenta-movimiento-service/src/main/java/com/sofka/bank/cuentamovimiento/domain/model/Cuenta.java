@@ -106,6 +106,14 @@ public class Cuenta {
         this.estado = false;
     }
 
+    public BigDecimal calcularSaldoResultante(BigDecimal valor) {
+        return saldoDisponible.add(valor);
+    }
+
+    public void actualizarSaldoDisponible(BigDecimal saldoDisponible) {
+        this.saldoDisponible = saldoDisponible;
+    }
+
     private void asignarSaldosIniciales(BigDecimal saldoInicial) {
         validarSaldoInicial(saldoInicial);
         this.saldoInicial = saldoInicial;
