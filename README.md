@@ -274,13 +274,17 @@ Esto permite validar build y pruebas automaticamente antes de integrar cambios.
 
 ## BaseDatos.sql
 
-Actualmente no existe un archivo `BaseDatos.sql` dentro de este repositorio.
+El repositorio incluye [BaseDatos.sql](./BaseDatos.sql) en la raiz como entregable del reto tecnico.
 
-Si se incorpora como parte del paquete final de entrega, la ubicacion esperada recomendada es:
+El script contiene el esquema de base de datos necesario para los dos microservicios:
 
-```text
-/BaseDatos.sql
-```
+- tablas principales
+- claves primarias
+- claves foraneas donde aplica
+- restricciones `UNIQUE`
+- indices utiles para consultas por cliente, cuenta y fecha
+
+`BaseDatos.sql` puede usarse como referencia o carga manual del esquema. Docker Compose no ejecuta automaticamente datos semilla para evitar conflictos con la coleccion Postman, que crea sus propios datos durante la validacion.
 
 ## Flujo de trabajo
 
