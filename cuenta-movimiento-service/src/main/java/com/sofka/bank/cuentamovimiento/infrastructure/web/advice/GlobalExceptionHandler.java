@@ -4,6 +4,7 @@ import com.sofka.bank.cuentamovimiento.domain.exception.CuentaNotFoundException;
 import com.sofka.bank.cuentamovimiento.domain.exception.ClienteInactivoException;
 import com.sofka.bank.cuentamovimiento.domain.exception.ClienteSnapshotNotFoundException;
 import com.sofka.bank.cuentamovimiento.domain.exception.DuplicatedNumeroCuentaException;
+import com.sofka.bank.cuentamovimiento.domain.exception.MovimientoAplicadoNoModificableException;
 import com.sofka.bank.cuentamovimiento.domain.exception.MovimientoNotFoundException;
 import com.sofka.bank.cuentamovimiento.domain.exception.SaldoNoDisponibleException;
 import org.springframework.http.HttpStatus;
@@ -66,6 +67,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ClienteInactivoException.class)
     public ResponseEntity<ErrorResponse> handleClienteInactivo(ClienteInactivoException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(exception.getMessage()));
+    }
+
+    @ExceptionHandler(MovimientoAplicadoNoModificableException.class)
+    public ResponseEntity<ErrorResponse> handleMovimientoAplicadoNoModificable(
+            MovimientoAplicadoNoModificableException exception
+    ) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(exception.getMessage()));
     }
