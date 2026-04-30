@@ -1,10 +1,10 @@
 # bank-microservices-challenge
 
-Reto tecnico backend para un sistema bancario simple, implementado con Java y Spring Boot bajo una arquitectura de 2 microservicios, orientada a un perfil Semi Senior.
+Reto tecnico backend para un sistema bancario simple, implementado con Java y Spring Boot bajo una arquitectura de 2 microservicios orientada a una entrega clara, defendible y alineada con el enunciado.
 
-## Descripcion del reto
+## Descripcion general
 
-La solucion cubre el flujo principal solicitado en el enunciado:
+La solucion cubre el flujo principal solicitado en el reto:
 
 - gestion de clientes
 - gestion de cuentas
@@ -15,27 +15,110 @@ La solucion cubre el flujo principal solicitado en el enunciado:
 - ejecucion local con Docker Compose
 - validacion automatizada con GitHub Actions
 
-## Arquitectura
+### Estructura del repositorio
 
-La aplicacion esta separada en dos microservicios:
+```text
+bank-microservices-challenge/
+  cliente-persona-service/
+  cuenta-movimiento-service/
+  .github/workflows/ci.yml
+  docker-compose.yml
+  postman_collection.json
+  pom.xml
+  README.md
+```
 
-### cliente-persona-service
+### Endpoints principales
 
-Responsable de:
+La API respeta el contrato principal del reto:
 
-- gestionar Persona y Cliente
-- exponer el CRUD de `/clientes`
-- publicar eventos cuando un cliente se crea, actualiza o desactiva
+- `POST /clientes`
+- `GET /clientes`
+- `GET /clientes/{clienteId}`
+- `PUT /clientes/{clienteId}`
+- `DELETE /clientes/{clienteId}`
+- `POST /cuentas`
+- `GET /cuentas`
+- `GET /cuentas/{id}`
+- `PUT /cuentas/{id}`
+- `DELETE /cuentas/{id}`
+- `POST /movimientos`
+- `GET /movimientos`
+- `GET /movimientos/{id}`
+- `GET /reportes?fecha=2022-02-01,2022-02-28&clienteId=2`
 
-### cuenta-movimiento-service
+### Reglas funcionales clave
 
-Responsable de:
+- `Cliente` hereda de `Persona`
+- `saldoDisponible` inicia con el mismo valor de `saldoInicial`
+- movimiento con valor positivo = deposito
+- movimiento con valor negativo = retiro
+- movimiento con valor `0` no es valido
+- si un retiro excede el saldo disponible, la respuesta funcional es `Saldo no disponible`
+- los movimientos rechazados no deben alterar saldo ni registrarse
 
-- gestionar Cuenta y Movimiento
-- exponer `/cuentas`, `/movimientos` y `/reportes`
-- actualizar saldos disponibles a partir de movimientos
-- validar saldo insuficiente
-- consumir eventos de cliente y mantener un `ClienteSnapshot` local
+## Arquitectura del sistema
+
+La solucion separa responsabilidades en dos microservicios, cada uno con su propia persistencia y comunicacion asincronica mediante RabbitMQ. `cliente-persona-service` administra Persona y Cliente; `cuenta-movimiento-service` administra cuentas, movimientos y reportes, consumiendo eventos de cliente para mantener un `ClienteSnapshot` local.
+
+```mermaid
+flowchart LR
+    consumidor[Cliente / API Consumer / Postman]
+
+    subgraph clientesServicio[cliente-persona-service]
+        clientesApi[CRUD /clientes]
+        clientesDominio[Persona y Cliente]
+    end
+
+    subgraph cuentasServicio[cuenta-movimiento-service]
+        cuentasApi[CRUD /cuentas]
+        movimientosApi[POST y consulta /movimientos]
+        reportesApi[GET /reportes]
+        snapshot[(ClienteSnapshot)]
+    end
+
+    rabbit[(RabbitMQ)]
+    clientesDb[(Base de datos de clientes)]
+    cuentasDb[(Base de datos de cuentas y movimientos)]
+    reporte[Reportes de estado de cuenta]
+
+    consumidor -->|HTTP /clientes| clientesApi
+    consumidor -->|HTTP /cuentas| cuentasApi
+    consumidor -->|HTTP /movimientos| movimientosApi
+    consumidor -->|HTTP /reportes| reportesApi
+
+    clientesApi --> clientesDominio
+    clientesDominio --> clientesDb
+
+    cuentasApi --> cuentasDb
+    movimientosApi --> cuentasDb
+    reportesApi --> cuentasDb
+
+    clientesDominio -->|Publica eventos de cliente| rabbit
+    rabbit -->|Consume eventos de cliente| snapshot
+    snapshot -->|Valida cliente y enriquece reportes| reportesApi
+    snapshot -->|Soporta creacion y validacion de cuentas| cuentasApi
+
+    reportesApi -->|Genera reportes| reporte
+    reporte --> consumidor
+```
+
+Puntos tecnicos clave:
+
+- el consumo HTTP se mantiene desacoplado por contexto: `/clientes` en `cliente-persona-service` y `/cuentas`, `/movimientos`, `/reportes` en `cuenta-movimiento-service`
+- RabbitMQ transporta los eventos de cliente creados, actualizados o desactivados
+- `cuenta-movimiento-service` no depende de una llamada HTTP sincrona para validar clientes; usa su `ClienteSnapshot` local
+- los reportes se generan desde `cuenta-movimiento-service`, apoyados en los movimientos persistidos y en la informacion minima disponible del snapshot
+
+## Estrategia de desarrollo TDD
+
+El backend se desarrollo siguiendo Test-Driven Development como estrategia principal para las funcionalidades de negocio. Cada funcionalidad se trabajo con tests primero, avanzando en el ciclo `RED -> GREEN -> REFACTOR`:
+
+- `RED`: se escriben pruebas que fallan por la razon esperada
+- `GREEN`: se implementa el minimo necesario para hacerlas pasar
+- `REFACTOR`: se mejora el diseno manteniendo el comportamiento en verde
+
+El historial de commits refleja este flujo con mensajes como `RED: agregar tests fallidos para ...`, `GREEN: implementar ...` y `REFACTOR: mejorar diseno ...` en features como clientes, cuentas, movimientos, reportes y comunicacion asincronica. Esta estrategia ayudo a mantener calidad, trazabilidad y bajo riesgo de regresiones durante la evolucion del proyecto.
 
 ## Stack tecnico
 
@@ -52,68 +135,6 @@ Responsable de:
 - Mockito
 - Docker y Docker Compose
 - GitHub Actions
-
-## Estructura del repositorio
-
-```text
-bank-microservices-challenge/
-  cliente-persona-service/
-  cuenta-movimiento-service/
-  .github/workflows/ci.yml
-  docker-compose.yml
-  postman_collection.json
-  pom.xml
-  README.md
-```
-
-## Endpoints principales
-
-La API respeta el contrato principal del reto:
-
-- `POST /clientes`
-- `GET /clientes`
-- `GET /clientes/{clienteId}`
-- `PUT /clientes/{clienteId}`
-- `DELETE /clientes/{clienteId}`
-
-- `POST /cuentas`
-- `GET /cuentas`
-- `GET /cuentas/{id}`
-- `PUT /cuentas/{id}`
-- `DELETE /cuentas/{id}`
-
-- `POST /movimientos`
-- `GET /movimientos`
-- `GET /movimientos/{id}`
-
-- `GET /reportes?fecha=2022-02-01,2022-02-28&clienteId=2`
-
-## Reglas funcionales clave
-
-- `Cliente` hereda de `Persona`
-- `saldoDisponible` inicia con el mismo valor de `saldoInicial`
-- movimiento con valor positivo = deposito
-- movimiento con valor negativo = retiro
-- movimiento con valor `0` no es valido
-- si un retiro excede el saldo disponible, la respuesta funcional es `Saldo no disponible`
-- los movimientos rechazados no deben alterar saldo ni registrarse
-
-## Comunicacion asincronica con RabbitMQ
-
-La solucion usa RabbitMQ para desacoplar ambos microservicios.
-
-### Eventos publicados por `cliente-persona-service`
-
-- `ClienteCreado`
-- `ClienteActualizado`
-- `ClienteDesactivado`
-
-### Uso en `cuenta-movimiento-service`
-
-- mantener una copia local minima `ClienteSnapshot`
-- validar existencia del cliente al crear cuentas
-- validar estado activo del cliente
-- enriquecer reportes con la informacion disponible del snapshot cuando aplica
 
 ## Ejecucion local con Docker Compose
 
@@ -266,23 +287,6 @@ La coleccion incluye requests para:
 
 La coleccion conserva el rango de fechas del PDF (`2022-02-01` a `2022-02-28`). Si se ejecuta sobre una base limpia y los movimientos se crean hoy, el reporte puede devolver cuentas con lista de movimientos vacia porque los movimientos se registran con la fecha actual del sistema.
 
-## CI con GitHub Actions
-
-El repositorio incluye el workflow [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
-
-El pipeline:
-
-- se ejecuta en `push` y `pull_request` hacia `main` y `develop`
-- usa Java 21
-- cachea dependencias Maven
-- ejecuta:
-
-```bash
-mvn -pl cliente-persona-service,cuenta-movimiento-service test
-```
-
-Esto permite validar build y pruebas automaticamente antes de integrar cambios.
-
 ## BaseDatos.sql
 
 El repositorio incluye [BaseDatos.sql](./BaseDatos.sql) en la raiz como entregable del reto tecnico.
@@ -297,24 +301,19 @@ El script contiene el esquema de base de datos necesario para los dos microservi
 
 `BaseDatos.sql` puede usarse como referencia o carga manual del esquema. Docker Compose no ejecuta automaticamente datos semilla para evitar conflictos con la coleccion Postman, que crea sus propios datos durante la validacion.
 
-## Flujo de trabajo
+## CI/CD
 
-El desarrollo sigue `AGENTS.md`:
+El repositorio incluye el workflow [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
 
-- `main` como rama principal
-- `develop` como rama de integracion
-- ramas por feature o documentacion
-- commits pequenos y trazables
-- TDD para funcionalidades de negocio
+Actualmente la automatizacion implementada cubre integracion continua:
 
-## Estado actual
+- se ejecuta en `push` y `pull_request` hacia `main` y `develop`
+- usa Java 21
+- cachea dependencias Maven
+- ejecuta:
 
-La solucion cuenta con:
+```bash
+mvn -pl cliente-persona-service,cuenta-movimiento-service test
+```
 
-- dos microservicios Spring Boot
-- persistencia separada en PostgreSQL para cada contexto
-- RabbitMQ como broker de mensajeria
-- pruebas automatizadas ejecutables con Maven
-- ejecucion local con Docker Compose
-- coleccion Postman para validacion manual
-- pipeline CI con GitHub Actions
+Esto permite validar build y pruebas automaticamente antes de integrar cambios.
