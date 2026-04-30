@@ -20,8 +20,10 @@ import java.math.BigDecimal;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -111,7 +113,11 @@ class MovimientosCrudTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validMovimientoRequest("478761", -1001)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Saldo no disponible"));
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Saldo no disponible"))
+                .andExpect(jsonPath("$.path").value("/movimientos"));
     }
 
     @Test
@@ -197,6 +203,72 @@ class MovimientosCrudTest {
     @Test
     void getMovimientosByIdWithUnknownIdShouldReturnNotFound() throws Exception {
         mockMvc.perform(get("/movimientos/{id}", 999L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Movimiento no encontrado"));
+    }
+
+    @Test
+    void putMovimientosByIdShouldRejectAppliedMovementWithoutChangingSaldo() throws Exception {
+        Long cuentaId = createCuenta(validCuentaRequest("478768", 1000));
+        Long movimientoId = createMovimiento("478768", 300);
+
+        mockMvc.perform(put("/movimientos/{id}", movimientoId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validMovimientoRequest("478768", 999)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Los movimientos aplicados no pueden modificarse por integridad transaccional"))
+                .andExpect(jsonPath("$.path").value("/movimientos/" + movimientoId));
+
+        mockMvc.perform(get("/movimientos/{id}", movimientoId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valor").value(300))
+                .andExpect(jsonPath("$.saldo").value(1300));
+
+        mockMvc.perform(get("/cuentas/{id}", cuentaId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.saldoDisponible").value(1300));
+    }
+
+    @Test
+    void deleteMovimientosByIdShouldRejectAppliedMovementWithoutRemovingIt() throws Exception {
+        Long cuentaId = createCuenta(validCuentaRequest("478769", 1000));
+        Long movimientoId = createMovimiento("478769", -200);
+
+        mockMvc.perform(delete("/movimientos/{id}", movimientoId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Los movimientos aplicados no pueden eliminarse por integridad transaccional"))
+                .andExpect(jsonPath("$.path").value("/movimientos/" + movimientoId));
+
+        mockMvc.perform(get("/movimientos/{id}", movimientoId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valor").value(-200))
+                .andExpect(jsonPath("$.saldo").value(800));
+
+        mockMvc.perform(get("/cuentas/{id}", cuentaId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.saldoDisponible").value(800));
+    }
+
+    @Test
+    void putMovimientosByIdWithUnknownIdShouldReturnNotFound() throws Exception {
+        mockMvc.perform(put("/movimientos/{id}", 999L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validMovimientoRequest("478768", 100)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Movimiento no encontrado"));
+    }
+
+    @Test
+    void deleteMovimientosByIdWithUnknownIdShouldReturnNotFound() throws Exception {
+        mockMvc.perform(delete("/movimientos/{id}", 999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Movimiento no encontrado"));
     }
