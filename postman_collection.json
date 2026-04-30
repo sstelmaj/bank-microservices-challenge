@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "13f0f0d2-5b31-4f65-ae4b-8ecf0d7f2c61",
     "name": "Bank Microservices Challenge API Validation",
-    "description": "Coleccion Postman para validar manualmente el contrato del reto con cobertura CRUD y casos negativos de clientes, cuentas, movimientos y reportes. Usa las variables `clientePersonaBaseUrl` y `cuentaMovimientoBaseUrl`. Los requests de `PUT /movimientos/{id}` y `DELETE /movimientos/{id}` documentan y validan el comportamiento actual del backend: hoy responde `405 Method Not Allowed` porque solo expone `POST`, `GET` y `GET /movimientos/{id}`. El request de reporte conserva el rango fijo del PDF (`2022-02-01,2022-02-28`). Si ejecutas la solucion sobre una base limpia, ese reporte valida el contrato y puede devolver listas de movimientos vacias porque los movimientos creados por API toman la fecha actual del sistema.",
+    "description": "Coleccion Postman para validar manualmente el contrato del reto con cobertura CRUD y casos negativos de clientes, cuentas, movimientos y reportes. Usa las variables `clientePersonaBaseUrl` y `cuentaMovimientoBaseUrl`. Los requests de `PUT /movimientos/{id}` y `DELETE /movimientos/{id}` validan el rechazo funcional esperado para movimientos aplicados por integridad transaccional. La coleccion esta pensada para ejecutarse sobre una base limpia; si necesitas repetirla localmente, usa `docker compose down -v` y luego `docker compose up --build`. El request de reporte conserva el rango fijo del PDF (`2022-02-01,2022-02-28`). Si ejecutas la solucion sobre una base limpia, ese reporte valida el contrato y puede devolver listas de movimientos vacias porque los movimientos creados por API toman la fecha actual del sistema.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -1317,20 +1317,23 @@
           }
         },
         {
-          "name": "Intentar actualizar movimiento aplicado - No soportado por backend actual",
+          "name": "Intentar actualizar movimiento aplicado - Error funcional",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Respuesta 405\", function () {",
-                  "    pm.response.to.have.status(405);",
+                  "pm.test(\"Respuesta 400\", function () {",
+                  "    pm.response.to.have.status(400);",
                   "});",
-                  "pm.test(\"El backend expone la limitacion actual del CRUD de movimientos\", function () {",
-                  "    const allowHeader = pm.response.headers.get('Allow') || '';",
-                  "    pm.expect(allowHeader).to.include('GET');",
-                  "    pm.expect(allowHeader).to.include('POST');",
+                  "pm.test(\"Error funcional estructurado\", function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.timestamp).to.exist;",
+                  "    pm.expect(json.status).to.eql(400);",
+                  "    pm.expect(json.error).to.eql('Bad Request');",
+                  "    pm.expect(json.message).to.eql('Los movimientos aplicados no pueden modificarse por integridad transaccional');",
+                  "    pm.expect(json.path).to.eql('/movimientos/' + pm.collectionVariables.get('depositoMovimientoId'));",
                   "});"
                 ]
               }
@@ -1338,7 +1341,7 @@
           ],
           "request": {
             "method": "PUT",
-            "description": "El contrato del reto pide CRUD de movimientos, pero el backend actual no implementa `PUT /movimientos/{id}`. Este request documenta y valida el comportamiento real expuesto hoy: `405 Method Not Allowed`.",
+            "description": "El contrato del reto pide CRUD de movimientos. Por integridad contable, el backend expone `PUT /movimientos/{id}` como operacion controlada que rechaza modificar movimientos aplicados sin recalcular saldos ni alterar el historial.",
             "header": [
               {
                 "key": "Content-Type",
@@ -1362,20 +1365,23 @@
           }
         },
         {
-          "name": "Intentar eliminar movimiento aplicado - No soportado por backend actual",
+          "name": "Intentar eliminar movimiento aplicado - Error funcional",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Respuesta 405\", function () {",
-                  "    pm.response.to.have.status(405);",
+                  "pm.test(\"Respuesta 400\", function () {",
+                  "    pm.response.to.have.status(400);",
                   "});",
-                  "pm.test(\"El backend expone la limitacion actual del CRUD de movimientos\", function () {",
-                  "    const allowHeader = pm.response.headers.get('Allow') || '';",
-                  "    pm.expect(allowHeader).to.include('GET');",
-                  "    pm.expect(allowHeader).to.include('POST');",
+                  "pm.test(\"Error funcional estructurado\", function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.timestamp).to.exist;",
+                  "    pm.expect(json.status).to.eql(400);",
+                  "    pm.expect(json.error).to.eql('Bad Request');",
+                  "    pm.expect(json.message).to.eql('Los movimientos aplicados no pueden eliminarse por integridad transaccional');",
+                  "    pm.expect(json.path).to.eql('/movimientos/' + pm.collectionVariables.get('depositoMovimientoId'));",
                   "});"
                 ]
               }
@@ -1383,7 +1389,7 @@
           ],
           "request": {
             "method": "DELETE",
-            "description": "El contrato del reto pide CRUD de movimientos, pero el backend actual no implementa `DELETE /movimientos/{id}`. Este request documenta y valida el comportamiento real expuesto hoy: `405 Method Not Allowed`.",
+            "description": "El contrato del reto pide CRUD de movimientos. Por integridad contable, el backend expone `DELETE /movimientos/{id}` como operacion controlada que rechaza eliminar movimientos aplicados sin alterar el historial ni el saldo.",
             "url": {
               "raw": "{{cuentaMovimientoBaseUrl}}/movimientos/{{depositoMovimientoId}}",
               "host": [
