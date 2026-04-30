@@ -113,7 +113,11 @@ class MovimientosCrudTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validMovimientoRequest("478761", -1001)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Saldo no disponible"));
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Saldo no disponible"))
+                .andExpect(jsonPath("$.path").value("/movimientos"));
     }
 
     @Test
@@ -212,8 +216,12 @@ class MovimientosCrudTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validMovimientoRequest("478768", 999)))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message")
-                        .value("Los movimientos aplicados no pueden modificarse por integridad transaccional"));
+                        .value("Los movimientos aplicados no pueden modificarse por integridad transaccional"))
+                .andExpect(jsonPath("$.path").value("/movimientos/" + movimientoId));
 
         mockMvc.perform(get("/movimientos/{id}", movimientoId))
                 .andExpect(status().isOk())
@@ -232,8 +240,12 @@ class MovimientosCrudTest {
 
         mockMvc.perform(delete("/movimientos/{id}", movimientoId))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message")
-                        .value("Los movimientos aplicados no pueden eliminarse por integridad transaccional"));
+                        .value("Los movimientos aplicados no pueden eliminarse por integridad transaccional"))
+                .andExpect(jsonPath("$.path").value("/movimientos/" + movimientoId));
 
         mockMvc.perform(get("/movimientos/{id}", movimientoId))
                 .andExpect(status().isOk())

@@ -127,7 +127,11 @@ class ClientesCrudTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validClienteRequest()))
                 .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
                 .andExpect(jsonPath("$.message", containsString("identificacion")))
+                .andExpect(jsonPath("$.path").value("/clientes"))
                 .andExpect(content().string(containsString("1234567890")));
     }
 
@@ -135,7 +139,11 @@ class ClientesCrudTest {
     void nonExistingClienteShouldReturnNotFound() throws Exception {
         mockMvc.perform(get("/clientes/{clienteId}", 999L))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("Cliente no encontrado"));
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("Cliente no encontrado"))
+                .andExpect(jsonPath("$.path").value("/clientes/999"));
     }
 
     private Long createCliente(String requestBody) throws Exception {
