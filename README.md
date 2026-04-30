@@ -226,6 +226,17 @@ La coleccion [postman_collection.json](./postman_collection.json) permite valida
 3. `Movimientos`
 4. `Reportes`
 
+### Ejecucion limpia de validacion
+
+La coleccion esta pensada para ejecutarse sobre una base limpia, porque crea sus propios clientes, cuentas y movimientos de prueba. Si necesitas repetir la validacion desde cero, elimina los volumenes y vuelve a levantar la solucion:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+Luego importa y ejecuta [postman_collection.json](./postman_collection.json) usando las variables locales indicadas arriba. El comando `down -v` elimina los datos persistidos de PostgreSQL y evita conflictos por identificaciones o numeros de cuenta duplicados.
+
 La coleccion incluye requests para:
 
 - crear clientes de ejemplo
@@ -248,7 +259,7 @@ La coleccion incluye requests para:
 - validar movimiento con valor cero
 - validar el caso `Saldo no disponible`
 - consultar movimientos
-- documentar y validar que `PUT /movimientos/{id}` y `DELETE /movimientos/{id}` hoy responden `405 Method Not Allowed`
+- validar que `PUT /movimientos/{id}` y `DELETE /movimientos/{id}` rechazan movimientos aplicados por integridad transaccional
 - consultar el reporte por rango de fechas y cliente
 
 ### Nota sobre el reporte
