@@ -6,9 +6,11 @@ import com.sofka.bank.cuentamovimiento.application.service.MovimientoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,5 +41,17 @@ public class MovimientoController {
     @GetMapping("/{id}")
     public ResponseEntity<MovimientoResponse> obtenerPorId(@PathVariable("id") Long id) {
         return ResponseEntity.ok(movimientoService.obtenerPorId(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> actualizar(@PathVariable("id") Long id) {
+        movimientoService.rechazarActualizacion(id);
+        return ResponseEntity.badRequest().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable("id") Long id) {
+        movimientoService.rechazarEliminacion(id);
+        return ResponseEntity.badRequest().build();
     }
 }

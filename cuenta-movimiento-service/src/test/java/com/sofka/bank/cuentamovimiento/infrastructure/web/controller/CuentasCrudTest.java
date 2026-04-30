@@ -125,7 +125,11 @@ class CuentasCrudTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validCuentaRequest()))
                 .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
                 .andExpect(jsonPath("$.message", containsString("numero")))
+                .andExpect(jsonPath("$.path").value("/cuentas"))
                 .andExpect(content().string(containsString("478758")));
     }
 
@@ -133,7 +137,11 @@ class CuentasCrudTest {
     void nonExistingCuentaShouldReturnNotFound() throws Exception {
         mockMvc.perform(get("/cuentas/{id}", 999L))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("Cuenta no encontrada"));
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("Cuenta no encontrada"))
+                .andExpect(jsonPath("$.path").value("/cuentas/999"));
     }
 
     @Test

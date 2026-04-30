@@ -4,6 +4,7 @@ import com.sofka.bank.cuentamovimiento.application.dto.MovimientoRequest;
 import com.sofka.bank.cuentamovimiento.application.dto.MovimientoResponse;
 import com.sofka.bank.cuentamovimiento.application.mapper.MovimientoMapper;
 import com.sofka.bank.cuentamovimiento.domain.exception.CuentaNotFoundException;
+import com.sofka.bank.cuentamovimiento.domain.exception.MovimientoAplicadoNoModificableException;
 import com.sofka.bank.cuentamovimiento.domain.exception.MovimientoNotFoundException;
 import com.sofka.bank.cuentamovimiento.domain.exception.SaldoNoDisponibleException;
 import com.sofka.bank.cuentamovimiento.domain.model.Cuenta;
@@ -22,6 +23,10 @@ import java.util.List;
 public class MovimientoService {
 
     private static final String SALDO_NO_DISPONIBLE_MESSAGE = "Saldo no disponible";
+    private static final String MOVIMIENTO_NO_MODIFICABLE_MESSAGE =
+            "Los movimientos aplicados no pueden modificarse por integridad transaccional";
+    private static final String MOVIMIENTO_NO_ELIMINABLE_MESSAGE =
+            "Los movimientos aplicados no pueden eliminarse por integridad transaccional";
 
     private final MovimientoRepository movimientoRepository;
     private final CuentaRepository cuentaRepository;
@@ -57,6 +62,18 @@ public class MovimientoService {
     @Transactional(readOnly = true)
     public MovimientoResponse obtenerPorId(Long id) {
         return movimientoMapper.toResponse(buscarMovimiento(id));
+    }
+
+    @Transactional(readOnly = true)
+    public void rechazarActualizacion(Long id) {
+        buscarMovimiento(id);
+        throw new MovimientoAplicadoNoModificableException(MOVIMIENTO_NO_MODIFICABLE_MESSAGE);
+    }
+
+    @Transactional(readOnly = true)
+    public void rechazarEliminacion(Long id) {
+        buscarMovimiento(id);
+        throw new MovimientoAplicadoNoModificableException(MOVIMIENTO_NO_ELIMINABLE_MESSAGE);
     }
 
     private Cuenta buscarCuentaPorNumero(String numeroCuenta) {

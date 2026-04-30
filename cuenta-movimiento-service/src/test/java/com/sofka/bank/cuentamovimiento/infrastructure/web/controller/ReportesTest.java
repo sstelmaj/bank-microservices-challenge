@@ -128,12 +128,28 @@ class ReportesTest {
 
     @Test
     void getReportesWithClientWithoutAccountsShouldReturnEmptyList() throws Exception {
+        clienteSnapshotRepository.save(new ClienteSnapshot(999L, "Cliente Sin Cuentas", "9999999999", true));
+
         mockMvc.perform(get("/reportes")
                         .param("fecha", "2022-02-01,2022-02-28")
                         .param("clienteId", "999"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.clienteId").value(999L))
+                .andExpect(jsonPath("$.cliente").value("Cliente Sin Cuentas"))
                 .andExpect(jsonPath("$.cuentas", hasSize(0)));
+    }
+
+    @Test
+    void getReportesWithUnknownClientShouldReturnNotFound() throws Exception {
+        mockMvc.perform(get("/reportes")
+                        .param("fecha", "2022-02-01,2022-02-28")
+                        .param("clienteId", "998"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("Cliente no encontrado"))
+                .andExpect(jsonPath("$.path").value("/reportes"));
     }
 
     private Cuenta createCuenta(
