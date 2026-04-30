@@ -4,6 +4,8 @@ import com.sofka.bank.cuentamovimiento.application.dto.ReporteCuentaResponse;
 import com.sofka.bank.cuentamovimiento.application.dto.ReporteEstadoCuentaResponse;
 import com.sofka.bank.cuentamovimiento.application.dto.ReporteMovimientoResponse;
 import com.sofka.bank.cuentamovimiento.application.mapper.ReporteMapper;
+import com.sofka.bank.cuentamovimiento.domain.exception.ClienteSnapshotNotFoundException;
+import com.sofka.bank.cuentamovimiento.domain.model.ClienteSnapshot;
 import com.sofka.bank.cuentamovimiento.domain.model.Cuenta;
 import com.sofka.bank.cuentamovimiento.domain.repository.ClienteSnapshotRepository;
 import com.sofka.bank.cuentamovimiento.domain.repository.CuentaRepository;
@@ -42,13 +44,14 @@ public class ReporteService {
 
     public ReporteEstadoCuentaResponse generarEstadoCuenta(Long clienteId, String fecha) {
         RangoFechas rangoFechas = parsearRango(fecha);
+        ClienteSnapshot clienteSnapshot = buscarClienteSnapshot(clienteId);
         List<ReporteCuentaResponse> cuentas = cuentaRepository.findAllByClienteIdOrderByIdAsc(clienteId).stream()
                 .map(cuenta -> toCuentaResponse(cuenta, rangoFechas))
                 .toList();
 
         return reporteMapper.toEstadoCuentaResponse(
                 clienteId,
-                obtenerNombreCliente(clienteId),
+                clienteSnapshot.getNombre(),
                 rangoFechas.fechaInicio(),
                 rangoFechas.fechaFin(),
                 cuentas
@@ -94,10 +97,9 @@ public class ReporteService {
         }
     }
 
-    private String obtenerNombreCliente(Long clienteId) {
+    private ClienteSnapshot buscarClienteSnapshot(Long clienteId) {
         return clienteSnapshotRepository.findByClienteId(clienteId)
-                .map(clienteSnapshot -> clienteSnapshot.getNombre())
-                .orElse(null);
+                .orElseThrow(() -> new ClienteSnapshotNotFoundException("Cliente no encontrado"));
     }
 
     private record RangoFechas(
